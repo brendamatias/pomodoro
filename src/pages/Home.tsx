@@ -1,6 +1,7 @@
 import logo from "@/assets/logo.svg";
 import play from "@/assets/play.svg";
 import pause from "@/assets/pause.svg";
+import alarmSound from "@/assets/sounds/alarm.wav";
 
 import { cn } from "@/lib";
 import { formatTime } from "@/utils";
@@ -26,6 +27,17 @@ export const Home = () => {
   const activeClass =
     "before:content-[''] before:absolute before:left-1/2 before:-translate-x-1/2 before:-bottom-2 before:h-[3px] before:w-12 before:bg-[#F4EDDB]";
 
+  const sendNotification = (title: string, body?: string) => {
+    if (Notification.permission === "granted") {
+      new Notification(title, { body });
+    }
+  };
+
+  const playAlarm = () => {
+    const audio = new Audio(alarmSound);
+    audio.play();
+  };
+
   useEffect(() => {
     setTimeLeft(modeDurations[mode]);
     setIsRunning(false);
@@ -39,6 +51,7 @@ export const Home = () => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(intervalRef.current!);
+          playAlarm();
 
           if (mode === "pomodoro") {
             const newCount = pomodoroCount + 1;
@@ -46,11 +59,17 @@ export const Home = () => {
 
             if (newCount % 4 === 0) {
               setMode("longBreak");
+              sendNotification("Hora do descanso longo!", "Aproveita bem!");
             } else {
               setMode("shortBreak");
+              sendNotification("Hora do descanso!", "Faça uma pausa rápida.");
             }
           } else {
             setMode("pomodoro");
+            sendNotification(
+              "Vamos voltar ao foco!",
+              "Novo Pomodoro iniciado."
+            );
           }
 
           return 0;
@@ -61,6 +80,12 @@ export const Home = () => {
 
     return () => clearInterval(intervalRef.current!);
   }, [isRunning, mode, pomodoroCount]);
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   return (
     <div className="flex flex-col justify-center gap-[50px]">
